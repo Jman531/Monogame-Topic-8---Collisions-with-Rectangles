@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System;
 using System.Collections.Generic;
 
 namespace Monogame_Topic_8___Collisions_with_Rectangles
@@ -10,7 +11,7 @@ namespace Monogame_Topic_8___Collisions_with_Rectangles
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
 
-        int pacSpeed;
+        int pacSpeed, coinsCollected;
 
         Rectangle window;
 
@@ -28,6 +29,10 @@ namespace Monogame_Topic_8___Collisions_with_Rectangles
 
         Texture2D coinTexture;
         List<Rectangle> coins;
+
+        SpriteFont coinFont;
+
+        Random generator = new Random();
 
         public Game1()
         {
@@ -53,11 +58,13 @@ namespace Monogame_Topic_8___Collisions_with_Rectangles
             barriers.Add(new Rectangle(0, 250, 350, 75));
             barriers.Add(new Rectangle(450, 250, 350, 75));
 
+            coinsCollected = 0;
             coins = new List<Rectangle>();
-            coins.Add(new Rectangle(400, 50, coinTexture.Width, coinTexture.Height));
-            coins.Add(new Rectangle(475, 50, coinTexture.Width, coinTexture.Height));
-            coins.Add(new Rectangle(200, 300, coinTexture.Width, coinTexture.Height));
-            coins.Add(new Rectangle(400, 300, coinTexture.Width, coinTexture.Height));
+            coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
+            coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
+            coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
+            coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
+            coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
 
             exitRect = new Rectangle(700, 380, 100, 100);
         }
@@ -76,6 +83,7 @@ namespace Monogame_Topic_8___Collisions_with_Rectangles
             exitTexture = Content.Load<Texture2D>("hobbit_door");
             barrierTexture = Content.Load<Texture2D>("rock_barrier");
             coinTexture = Content.Load<Texture2D>("coin");
+            coinFont = Content.Load<SpriteFont>("Coin Count");
         }
 
         protected override void Update(GameTime gameTime)
@@ -132,20 +140,53 @@ namespace Monogame_Topic_8___Collisions_with_Rectangles
                     }
             }
 
+            if (pacRect.Right > window.Width)
+            {
+                pacRect.X = 740;
+            }
+            if (pacRect.Left < 0)
+            {
+                pacRect.X = 0;
+            }
+            if (pacRect.Bottom > window.Height)
+            {
+                pacRect.Y = 440;
+            }
+            if (pacRect.Top < 0)
+            {
+                pacRect.Y = 0;
+            }
+
             for (int i = 0; i < coins.Count; i++)
             {
+                for (int j = 0; j < coins.Count; j++)
+                {
+                    if (i != j && coins[i].Intersects(coins[j]))
+                    {
+                        coins.RemoveAt(i);
+                        coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
+                    }
+                }
+                foreach (Rectangle barrier in barriers)
+                    if (coins[i].Intersects(barrier))
+                    {
+                        coins.RemoveAt(i);
+                        coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
+                    }
+                if (coins[i].Intersects(exitRect))
+                {
+                    coins.RemoveAt(i);
+                    coins.Add(new Rectangle(generator.Next(0, (800 - coinTexture.Width)), generator.Next(0, (500 - coinTexture.Height)), coinTexture.Width, coinTexture.Height));
+                }
                 if (pacRect.Intersects(coins[i]))
                 {
                     coins.RemoveAt(i);
                     i--;
+                    coinsCollected++;
                 }
             }
-            if (exitRect.Contains(pacRect))
+            if (exitRect.Contains(pacRect) && mouseState.LeftButton == ButtonState.Pressed)
                 Exit();
-
-            if (mouseState.LeftButton == ButtonState.Pressed)
-                if (exitRect.Contains(mouseState.X, mouseState.Y))
-                    Exit();
 
             base.Update(gameTime);
         }
@@ -163,6 +204,7 @@ namespace Monogame_Topic_8___Collisions_with_Rectangles
             _spriteBatch.Draw(currentPacTexture, pacRect, Color.White);
             foreach (Rectangle coin in coins)
                 _spriteBatch.Draw(coinTexture, coin, Color.White);
+            _spriteBatch.DrawString(coinFont, "Coins Collected: " + coinsCollected, new Vector2(0, 0), Color.White);
 
             _spriteBatch.End();
 
